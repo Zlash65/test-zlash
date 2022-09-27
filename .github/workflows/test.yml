@@ -60,7 +60,7 @@ jobs:
   deploy-ecs:
     if: contains(fromJson('["apigateway-new","payments-new","notify"]'), inputs.service)
     runs-on: ubuntu-latest
-    needs: [build-container, tag-releases]
+    needs: [build-container]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -72,7 +72,7 @@ jobs:
   deploy-ecs-backend-main:
     if: ${{ contains(fromJson('["apigateway-new","payments-new","notify"]'), inputs.service) == false }}
     runs-on: ubuntu-latest
-    needs: [build-container, tag-releases]
+    needs: [build-container]
     steps:
       - uses: actions/checkout@v3
         with:

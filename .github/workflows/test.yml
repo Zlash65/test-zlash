@@ -1,0 +1,81 @@
+name: Deploy Hotfix
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Select the service'
+        required: true
+        default: 'backend-main'
+        type: choice
+        options:
+        - frontend-admin
+        - notify
+        - payments-new
+        - apigateway-new
+        - backend-main
+        - calendar
+        - employees
+        - facility
+        - logerrors
+        - payment
+        - shifts
+        - user
+        - agentprofile
+        - cron
+        - pricing
+        - services
+        - lastminute
+        - qf-facility
+        - qf-agent
+        - shiftmonitor
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  frontendadmin-build-deploy:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.service == frontend-admin }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - run: |
+          echo "frontend"
+
+  build-container:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.service != frontend-admin }}
+    timeout-minutes: 25
+    outputs:
+      DOCKER_IMAGE_NAME: ${{ steps.build-container.outputs.DOCKER_IMAGE_NAME }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - run: |
+          echo "build-container"
+
+  deploy-ecs:
+    runs-on: ubuntu-latest
+    needs: [build-container, tag-releases]
+    if: contains(fromJson('["apigateway-new","payments-new","notify"]'), inputs.service)
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - run: |
+          echo "deploy-ecs"
+
+
+  deploy-ecs-backend-main:
+    runs-on: ubuntu-latest
+    needs: [build-container, tag-releases]
+    if: ${{ contains(fromJson('["apigateway-new","payments-new","notify"]'), inputs.service) == false }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - run: |
+          echo "deploy-ecs-backend-main"

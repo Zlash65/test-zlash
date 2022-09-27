@@ -36,7 +36,7 @@ env:
 jobs:
   frontendadmin-build-deploy:
     runs-on: ubuntu-latest
-    if: ${{ inputs.service == "frontend-admin" }}
+    if: inputs.service == "frontend-admin"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -46,7 +46,7 @@ jobs:
 
   build-container:
     runs-on: ubuntu-latest
-    if: ${{ inputs.service != "frontend-admin" }}
+    if: inputs.service != "frontend-admin"
     timeout-minutes: 25
     outputs:
       DOCKER_IMAGE_NAME: ${{ steps.build-container.outputs.DOCKER_IMAGE_NAME }}

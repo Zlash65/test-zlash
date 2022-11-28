@@ -1,0 +1,27 @@
+name: Syncronize branches
+concurrency:
+  group: sync-branches
+  cancel-in-progress: false
+on:
+  push:
+    branches: ["main", "release-mobile-*"]
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: sync-branches
+        uses: ClipboardHealth/actions/.github/actions/sync-branches@v1.3.3
+        with:
+          source_branch: ${{ github.ref_name }}
+          github_token: ${{ secrets.ACTIONS_PUSH_TOKEN }}
+          branch_pattern: "main release-mobile-__ASC__ development"
+
+      - name: Show outputs
+        env:
+          MERGE_BRANCH: ${{ steps.sync-branches.outputs.merge_branch }}
+          PR_LINK: ${{ steps.sync-branches.outputs.pr_link }}
+        run: |
+          echo Merge branch: "$MERGE_BRANCH"
+          echo PR link: "$PR_LINK"

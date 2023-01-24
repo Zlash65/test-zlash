@@ -1,0 +1,44 @@
+name: Create release branch
+concurrency:
+  group: create-release
+  cancel-in-progress: false
+on:
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: development
+          fetch-depth: 0
+          token: ${{ secrets.ACTIONS_PUSH_TOKEN }}
+
+      - name: Create new release branch
+        id: create-release-branch
+        run: |
+          pr_logs=$(git log --cherry-pick --oneline origin/main...origin/development)
+          echo ${pr_logs}
+          echo "source_branch=release-web-$(date --iso-8601)" >> $GITHUB_ENV
+          echo "pr_title=Release web $(date '+%Y %m %d')" >> $GITHUB_ENV
+          echo "pr_logs=${pr_logs}" >> $GITHUB_ENV
+          git push origin "development:release-web-$(date --iso-8601)" -f
+
+      - name: Create pull request
+        id: create-pull-request
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: "main"
+          source_branch: ${{ env.source_branch }}
+          # pr_reviewer: "archana-shetty"
+          pr_title: ${{ env.pr_title }}
+          pr_allow_empty: true
+          pr_body: |
+            ## Description
+            ### What changes were made?
+            ${{ env.pr_logs }}
+          github_token: ${{ secrets.ACTIONS_PUSH_TOKEN }}
+
+      - name: Pull request url
+        run: echo ${{steps.create-pull-request.outputs.pr_url}}

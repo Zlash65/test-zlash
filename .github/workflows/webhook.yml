@@ -1,5 +1,5 @@
 name: Webhook Trigger
-run-name: Run Tests on bitrise build
+run-name: Run Tests on bitrise build - ${{ github.event.client_payload.branch }}
 
 concurrency:
   group: webhook-trigger
@@ -21,8 +21,10 @@ jobs:
         if: github.event.action == 'success'
         run: |
           echo "Run successful !!"
+          echo ${{ github.event.client_payload.branch }}
 
       - name: Log info
         if: github.event.action == 'failure'
         run: |
           echo "Run failed !!"
+          echo ${{ github.event.client_payload.branch }}

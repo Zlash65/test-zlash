@@ -1,7 +1,10 @@
 name: Webhook Trigger
+run-name: Run Tests on bitrise build
+
 concurrency:
   group: webhook-trigger
   cancel-in-progress: false
+
 on:
   repository_dispatch:
     types:

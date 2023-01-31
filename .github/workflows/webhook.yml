@@ -5,7 +5,8 @@ concurrency:
 on:
   repository_dispatch:
     types:
-      - webhook
+      - success
+      - failure
 
 jobs:
   webhook-trigger:
@@ -14,5 +15,11 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Log info
+        if: github.event.action == 'success'
         run: |
           echo "Run successful !!"
+
+      - name: Log info
+        if: github.event.action == 'failure'
+        run: |
+          echo "Run failed !!"

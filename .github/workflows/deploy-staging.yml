@@ -4,6 +4,8 @@ concurrency:
   cancel-in-progress: false
 on:
   workflow_dispatch:
+  push:
+    branches: [ release-* ]
   pull_request:
     branches: [ development ]
     types:

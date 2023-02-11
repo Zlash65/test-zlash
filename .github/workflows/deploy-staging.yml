@@ -1,25 +1,19 @@
-name: Build & Deploy - staging
+name: Test target deregistration
 concurrency:
   group: deploy-staging
   cancel-in-progress: false
 on:
   workflow_dispatch:
-  push:
-    branches: [ release-* ]
-  pull_request:
-    branches: [ development ]
-    types:
-      - opened
-      - synchronize
-env:
-  AWS_REGION: us-west-2
+
 jobs:
-  bitrise-build-deploy:
+  deregister-targets:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: ./.github/actions/deregister-targets
         with:
-          ref: ${{ github.head_ref }}
-      - run: echo ${{ github.ref }}
-      - run: echo ${{ github.ref_name }}
-      - run: echo ${{ github.head_ref }}
+          aws_region: us-west-2
+          cluster_name: cbh-production-cluster
+          service_name: cbh-oig-automatization-production
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_PRODUCTION }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PRODUCTION }}

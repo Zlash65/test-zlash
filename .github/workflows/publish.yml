@@ -1,0 +1,21 @@
+name: Publish Trigger
+
+concurrency:
+  group: webhook-trigger
+  cancel-in-progress: false
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  webhook-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log info
+        run: |
+          echo "Run successful !!"
+          echo ${GITHUB_REF}

@@ -4,7 +4,7 @@ concurrency:
   cancel-in-progress: false
 on:
   push:
-    branches: ["main", "release-mobile-*"]
+    branches: ["main", "release-web-*"]
 
 jobs:
   sync-branches:
@@ -12,11 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: sync-branches
-        uses: ClipboardHealth/actions/.github/actions/sync-branches@v1.3.3
+        uses: ClipboardHealth/actions/.github/actions/sync-branches@v1.1.1
         with:
           source_branch: ${{ github.ref_name }}
           github_token: ${{ secrets.ACTIONS_PUSH_TOKEN }}
-          branch_pattern: "main release-mobile-__ASC__ development"
+          branch_pattern: "main release-web-__ASC__ development"
 
       - name: Show outputs
         env:

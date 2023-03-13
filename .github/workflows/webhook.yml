@@ -1,0 +1,30 @@
+name: Webhook Trigger
+run-name: Run Tests on bitrise build - ${{ github.event.client_payload.branch }}
+
+concurrency:
+  group: webhook-trigger
+  cancel-in-progress: false
+
+on:
+  repository_dispatch:
+    types:
+      - success
+      - failure
+
+jobs:
+  webhook-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log info
+        if: github.event.action == 'success'
+        run: |
+          echo "Run successful !!"
+          echo ${{ github.event.client_payload.branch }}
+
+      - name: Log info
+        if: github.event.action == 'failure'
+        run: |
+          echo "Run failed !!"
+          echo ${{ github.event.client_payload.branch }}

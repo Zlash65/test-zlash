@@ -1,0 +1,83 @@
+name: Deregister unused target groups
+description: Get the target group not associated with load balancer and deregister orphan targets
+
+inputs:
+  cluster_name:
+    description: The name of the ECS cluster
+    required: true
+  service_name:
+    description: The name of the ECS service
+    required: true
+  aws_region:
+    description: "AWS region"
+    required: true
+  aws_access_key_id:
+    description: The AWS access key ID
+    required: true
+  aws_secret_access_key:
+    description: The AWS secret access key
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup environment variables
+      shell: bash
+      run: |
+        echo "CLUSTER_NAME=${{ inputs.cluster_name }}" >> $GITHUB_ENV
+        echo "SERVICE_NAME=${{ inputs.service_name }}" >> $GITHUB_ENV
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.aws_access_key_id }}
+        aws-secret-access-key: ${{ inputs.aws_secret_access_key }}
+        aws-region: ${{ inputs.aws_region }}
+
+    - name: Check if service exists
+      id: check-service-exists
+      shell: bash
+      run: |
+        SERVICE_EXISTS=$(aws ecs describe-services --cluster ${CLUSTER_NAME} --services ${SERVICE_NAME} --query 'services[].serviceName' --output text)
+        if [ -z "$SERVICE_EXISTS" ]; then
+          echo "Service not found: ${SERVICE_NAME}"
+          exit 1
+        fi
+        echo "Service exists: ${SERVICE_NAME}"
+        echo "SERVICE_EXISTS=${{ steps.check-service-exists.outputs.SERVICE_EXISTS }}" >> $GITHUB_OUTPUT
+
+    - name: Find unused target group
+      shell: bash
+      run: |
+        DEPLOYMENT_GROUP_NAME=$(aws deploy list-deployment-groups --application-name ${SERVICE_NAME} --query 'deploymentGroups[]' --output text)
+        LOAD_BALANCER_TARGET_GROUP_ARNS=$(aws ecs describe-services --cluster ${CLUSTER_NAME} --services ${SERVICE_NAME} --query 'services[].loadBalancers[].targetGroupArn' --output text)
+
+        for target_group_arn in $(aws deploy get-deployment-group --deployment-group-name ${DEPLOYMENT_GROUP_NAME} --application-name ${SERVICE_NAME} --query "deploymentGroupInfo.loadBalancerInfo.targetGroupPairInfoList[].targetGroups[].name" --output text); do
+          if ! echo "$LOAD_BALANCER_TARGET_GROUP_ARNS" | grep -q "$target_group_arn"; then
+            UNUSED_TARGET_GROUP_NAME=$target_group_arn
+            break
+          fi
+        done
+
+        if [ -z "$UNUSED_TARGET_GROUP_NAME" ]; then
+          echo "Unused target group not found in deployment group: ${DEPLOYMENT_GROUP_NAME}"
+          exit 0
+        fi
+        
+        UNUSED_TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --names $UNUSED_TARGET_GROUP_NAME --query 'TargetGroups[0].TargetGroupArn' --output text)
+        echo "Unused target group found: ${UNUSED_TARGET_GROUP_NAME}"
+        echo "UNUSED_TARGET_GROUP_ARN=$UNUSED_TARGET_GROUP_ARN" >> $GITHUB_ENV
+        echo "UNUSED_TARGET_GROUP_NAME=$UNUSED_TARGET_GROUP_NAME" >> $GITHUB_ENV
+
+    - name: Deregister targets
+      shell: bash
+      run: |
+        TARGETS=$(aws elbv2 describe-target-health --target-group-arn ${UNUSED_TARGET_GROUP_ARN}  --query 'TargetHealthDescriptions[*].Target.Id' --output text)
+        if [ -z "$TARGETS" ]; then
+          echo "No targets found in unused target group: ${UNUSED_TARGET_GROUP_NAME}"
+        else
+          echo "Deregistering targets in unused target group: ${UNUSED_TARGET_GROUP_NAME}"
+          for TARGET in $(echo ${TARGETS}); do
+            aws elbv2 deregister-targets --target-group-arn ${UNUSED_TARGET_GROUP_ARN} --targets Id=${TARGET}
+          done
+        fi

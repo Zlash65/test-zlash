@@ -1,0 +1,19 @@
+name: Test target deregistration
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+on:
+  workflow_dispatch:
+
+jobs:
+  deregister-targets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/deregister-targets
+        with:
+          aws_region: us-west-2
+          cluster_name: cbh-production-cluster
+          service_name: cbh-oig-automatization-production
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_PRODUCTION }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PRODUCTION }}
